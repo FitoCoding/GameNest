@@ -4,13 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GameNest - Integración con Steam</title>
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Animate.css -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-  <!-- AOS Library -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
-  <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
@@ -92,14 +88,12 @@
     .btn-close-white {
       filter: invert(1);
     }
-    /* Animaciones personalizadas */
     .animate__animated {
       --animate-duration: 1s;
     }
   </style>
 </head>
 <body>
-  <!-- Barra de navegación -->
   <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#"><i class="fas fa-gamepad"></i> GameNest</a>
@@ -116,11 +110,9 @@
     </div>
   </nav>
 
-  <!-- Contenido principal -->
   <div class="container my-5">
     <h1 class="text-center mb-4 animate__animated animate__fadeInDown">Bienvenido a <span style="color: #66c0f4;">GameNest</span></h1>
 
-    <!-- Sección para usuarios no autenticados -->
     <div id="login-section" class="text-center animate__animated animate__fadeInUp">
       <p>Por favor, inicia sesión con Steam para continuar:</p>
       <a href="/auth/steam">
@@ -128,7 +120,6 @@
       </a>
     </div>
 
-    <!-- Sección para usuarios autenticados -->
     <div id="profile-section" class="mt-4 hidden">
       <div class="text-center">
         <img id="avatar" src="" alt="Avatar" class="avatar animate__animated animate__zoomIn">
@@ -138,7 +129,6 @@
 
       <div class="mt-5">
         <h3 class="text-center">Grupos Familiares</h3>
-        <!-- Grupo Familiar -->
         <div id="my-group" class="mt-4 hidden" data-aos="fade-up">
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -149,18 +139,15 @@
               </div>
             </div>
             <div class="card-body row">
-              <!-- Juegos -->
               <div class="col-md-4">
                 <h5><i class="fas fa-gamepad"></i> Juegos del Grupo</h5>
                 <ul id="group-games" class="list-group"></ul>
               </div>
-              <!-- Intereses -->
               <div class="col-md-4">
                 <h5><i class="fas fa-heart"></i> Intereses del Grupo</h5>
                 <button id="add-wishlist-btn" class="btn btn-sm btn-steam mb-3"><i class="fas fa-plus"></i> Agregar mi wishlist al grupo</button>
                 <ul id="group-interests" class="list-group"></ul>
               </div>
-              <!-- Miembros -->
               <div class="col-md-4">
                 <h5><i class="fas fa-user-friends"></i> Miembros del Grupo</h5>
                 <ul id="group-members" class="list-group"></ul>
@@ -172,19 +159,16 @@
           </div>
         </div>
 
-        <!-- Sección de invitaciones pendientes -->
         <div id="invitations-section" class="mt-4 hidden" data-aos="fade-up">
           <h5><i class="fas fa-envelope-open-text"></i> Invitaciones Pendientes</h5>
           <ul id="pending-invitations" class="list-group"></ul>
         </div>
 
-        <!-- Sección de solicitudes de ingreso -->
         <div id="join-requests-section" class="mt-4 hidden" data-aos="fade-up">
           <h5><i class="fas fa-user-plus"></i> Solicitudes de Ingreso</h5>
           <ul id="join-requests" class="list-group"></ul>
         </div>
 
-        <!-- Botones adicionales -->
         <div class="d-flex flex-wrap gap-3 mt-3 justify-content-center">
           <button id="create-group-btn" class="btn btn-steam hidden"><i class="fas fa-users"></i> Crear Grupo Familiar</button>
           <button id="search-group-btn" class="btn btn-outline-light"><i class="fas fa-search"></i> Buscar Grupos Familiares</button>
@@ -192,7 +176,6 @@
           <button id="find-players-btn" class="btn btn-outline-light hidden"><i class="fas fa-user-friends"></i> Encontrar Jugadores</button>
         </div>
 
-        <!-- Sección de búsqueda de grupos -->
         <div id="group-search" class="mt-4 hidden" data-aos="fade-up">
           <h5><i class="fas fa-search"></i> Buscar Grupos</h5>
           <div class="input-group mb-3">
@@ -202,13 +185,11 @@
           <ul id="group-results" class="list-group"></ul>
         </div>
 
-        <!-- Sección de recomendaciones -->
         <div id="group-recommendations" class="mt-4 hidden" data-aos="fade-up">
           <h5><i class="fas fa-star"></i> Grupos Recomendados</h5>
           <ul id="recommendations-list" class="list-group"></ul>
         </div>
 
-        <!-- Sección de jugadores recomendados -->
         <div id="find-players-section" class="mt-4 hidden" data-aos="fade-up">
           <h5><i class="fas fa-user-friends"></i> Jugadores Recomendados</h5>
           <ul id="recommended-players" class="list-group"></ul>
@@ -217,8 +198,6 @@
     </div>
   </div>
 
-  <!-- Modales -->
-  <!-- Modal para crear grupo -->
   <div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -236,7 +215,6 @@
     </div>
   </div>
 
-  <!-- Modal para editar nombre del grupo -->
   <div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -254,7 +232,6 @@
     </div>
   </div>
 
-  <!-- Modal para confirmar eliminación del grupo -->
   <div class="modal fade" id="deleteGroupModal" tabindex="-1" aria-labelledby="deleteGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -273,7 +250,6 @@
     </div>
   </div>
 
-  <!-- Modal para mostrar mensajes -->
   <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -282,7 +258,6 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body" id="messageModalBody">
-          <!-- Mensaje dinámico -->
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-steam" data-bs-dismiss="modal">Aceptar</button>
@@ -291,7 +266,6 @@
     </div>
   </div>
 
-  <!-- Pie de página -->
   <footer class="footer mt-5">
     <div class="container text-center">
       <p>&copy; 2024 GameNest. Todos los derechos reservados.</p>
@@ -302,14 +276,10 @@
     </div>
   </footer>
 
-  <!-- Bootstrap JS y scripts personalizados -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- AOS Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
-  <!-- Font Awesome -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
   <script>
-    // Inicializar AOS
     AOS.init();
 
     let groupId = null;
@@ -331,10 +301,7 @@
           document.getElementById("profile-section").classList.remove("hidden");
           document.getElementById("login-section").classList.add("hidden");
 
-          // Cargar información del grupo
           await loadMyGroup();
-
-          // Cargar invitaciones pendientes
           await loadPendingInvitations();
         } else {
           document.getElementById("login-section").classList.remove("hidden");
@@ -363,7 +330,6 @@
           document.getElementById("group-name").textContent = data.group.nombre_grupo;
           groupId = data.group.id_grupo;
 
-          // Juegos del grupo
           const gamesList = document.getElementById("group-games");
           gamesList.innerHTML = "";
           data.games.forEach(game => {
@@ -373,7 +339,6 @@
             gamesList.appendChild(li);
           });
 
-          // Intereses del grupo
           const interestsList = document.getElementById("group-interests");
           interestsList.innerHTML = "";
           data.interests.forEach(interest => {
@@ -404,7 +369,6 @@
             interestsList.appendChild(li);
           });
 
-          // Miembros del grupo
           const membersList = document.getElementById("group-members");
           membersList.innerHTML = "";
           data.members.forEach(member => {
@@ -460,7 +424,6 @@
             membersList.appendChild(li);
           });
 
-          // Mostrar solicitudes de ingreso si es admin
           const joinRequestsSection = document.getElementById("join-requests-section");
           const joinRequestsList = document.getElementById("join-requests");
           if (data.isAdmin && data.joinRequests && data.joinRequests.length > 0) {
@@ -493,11 +456,9 @@
             joinRequestsSection.classList.add("hidden");
           }
 
-          // Mostrar/ocultar botones según el rol
           document.getElementById("admin-actions").style.display = data.isAdmin ? "flex" : "none";
           document.getElementById("add-wishlist-btn").style.display = "inline-block";
 
-          // Mostrar botón para salir del grupo si no es admin
           const leaveGroupBtn = document.getElementById("leave-group-btn");
           if (!data.isAdmin) {
             leaveGroupBtn.classList.remove("hidden");
@@ -517,13 +478,11 @@
       }
     }
 
-    // Función para mostrar mensajes en el modal
     function showMessage(message) {
       document.getElementById("messageModalBody").textContent = message;
       messageModal.show();
     }
 
-    // Nueva función para responder a solicitudes
     async function respondToRequest(solicitudId, respuesta) {
       try {
         const res = await fetch(`/group/respond-request`, {
@@ -653,7 +612,6 @@
       }
     });
 
-    // Nueva función para solicitar unirse a un grupo
     async function requestToJoinGroup(groupId) {
       try {
         const res = await fetch("/group/request-join", {
@@ -733,7 +691,6 @@
       }
     }
 
-    // Evento para el botón "Salir del Grupo"
     document.getElementById("leave-group-btn").addEventListener("click", async () => {
       if (confirm("¿Estás seguro de que deseas salir del grupo?")) {
         try {
@@ -764,8 +721,6 @@
             const li = document.createElement("li");
             li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
             li.textContent = `${player.nombre_usuario} - Coincidencias: ${player.coincidencias}`;
-
-            // Botón para invitar al jugador
             const inviteBtn = document.createElement("button");
             inviteBtn.classList.add("btn", "btn-sm", "btn-steam");
             inviteBtn.innerHTML = '<i class="fas fa-user-plus"></i> Invitar';

@@ -1,4 +1,4 @@
-// group.js
+
 
 import express from "express";
 import { neon } from "@neondatabase/serverless";
@@ -7,7 +7,7 @@ import fetch from "node-fetch";
 const sql = neon("postgresql://gamenest_owner:2vdbTsro7fYp@ep-noisy-firefly-a5i6652r.us-east-2.aws.neon.tech/gamenest?sslmode=require");
 const router = express.Router();
 
-// Función auxiliar para obtener detalles completos del juego desde la API de Steam
+
 const fetchGameDetails = async (appid) => {
   try {
     const response = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appid}&l=spanish`);
@@ -23,14 +23,14 @@ const fetchGameDetails = async (appid) => {
       };
     }
 
-    // Obtener desarrollador
+
     const desarrollador = gameData.developers ? gameData.developers.join(', ') : 'Desconocido';
 
-    // Obtener género
+
     const generos = gameData.genres ? gameData.genres.map(g => g.description) : [];
     const genero = generos.length > 0 ? generos.join(', ') : 'Desconocido';
 
-    // Obtener plataformas
+
     const plataformas = [];
     if (gameData.platforms) {
       if (gameData.platforms.windows) plataformas.push('Windows');
@@ -56,7 +56,6 @@ const fetchGameDetails = async (appid) => {
   }
 };
 
-// Obtener el grupo familiar del usuario
 router.get("/my-group", async (req, res) => {
   const userId = req.user._json.steamid;
 
@@ -99,7 +98,7 @@ router.get("/my-group", async (req, res) => {
       [groupId]
     );
 
-    // Nuevo código para obtener solicitudes de ingreso pendientes (si el usuario es admin)
+
     let joinRequests = [];
     if (group[0].id_admin_grupo === userId) {
       joinRequests = await sql(
@@ -118,7 +117,7 @@ router.get("/my-group", async (req, res) => {
       games, 
       interests, 
       isAdmin: group[0].id_admin_grupo === userId,
-      joinRequests // Incluimos las solicitudes en la respuesta
+      joinRequests 
     });
   } catch (error) {
     console.error("Error al obtener grupo familiar:", error);
@@ -126,7 +125,7 @@ router.get("/my-group", async (req, res) => {
   }
 });
 
-// Crear grupo y agregar juegos automáticamente
+
 router.post("/create", async (req, res) => {
   const { nombreGrupo } = req.body;
   const userId = req.user._json.steamid;
@@ -160,7 +159,7 @@ router.post("/create", async (req, res) => {
       [userId, groupId]
     );
 
-    // Obtener juegos del usuario y agregarlos al grupo y a BibliotecaUsuario
+  
     const response = await fetch(
       `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=7D015CE6D54B9B33854A408D92E3BCE1&steamid=${userId}&include_appinfo=true`
     );
@@ -170,7 +169,7 @@ router.post("/create", async (req, res) => {
       for (const game of data.response.games) {
         const { appid, name } = game;
 
-        // Verificar si el juego ya existe en la tabla Juego
+  
         const juegoExiste = await sql(
           `SELECT 1 FROM Juego WHERE id_juego = $1`,
           [appid]
@@ -185,7 +184,7 @@ router.post("/create", async (req, res) => {
           );
         }
 
-        // Agregar a BibliotecaUsuario
+
         await sql(
           `INSERT INTO BibliotecaUsuario (id_juego, id_usuario, fecha_adicion)
            VALUES ($1, $2, CURRENT_DATE)
@@ -193,14 +192,14 @@ router.post("/create", async (req, res) => {
           [appid, userId]
         );
 
-        // Verificar si el juego ya existe en JuegosEnGrupo
+
         const juegoEnGrupoExiste = await sql(
           `SELECT * FROM JuegosEnGrupo WHERE id_grupo = $1 AND id_juego = $2`,
           [groupId, appid]
         );
 
         if (juegoEnGrupoExiste.length > 0) {
-          // Si existe, incrementar cantidad_copias en 1
+
           await sql(
             `UPDATE JuegosEnGrupo
              SET cantidad_copias = cantidad_copias + 1, fecha_actualizacion = CURRENT_DATE
@@ -208,7 +207,7 @@ router.post("/create", async (req, res) => {
             [groupId, appid]
           );
         } else {
-          // Si no existe, insertar en JuegosEnGrupo con cantidad_copias = 1
+
           await sql(
             `INSERT INTO JuegosEnGrupo (id_grupo, id_juego, cantidad_copias, fecha_actualizacion)
              VALUES ($1, $2, 1, CURRENT_DATE)`,
@@ -225,7 +224,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// Agregar wishlist del usuario como intereses al grupo
+
 router.post("/add-wishlist-to-group", async (req, res) => {
   const { groupId } = req.body;
   const userId = req.user._json.steamid;
@@ -235,7 +234,6 @@ router.post("/add-wishlist-to-group", async (req, res) => {
   }
 
   try {
-    // Verificar si el grupo existe y el usuario es miembro/admin
     const group = await sql(
       `SELECT * FROM GrupoFamiliar 
        WHERE id_grupo = $1 
@@ -249,7 +247,7 @@ router.post("/add-wishlist-to-group", async (req, res) => {
       return res.status(404).json({ error: "Grupo no encontrado o no tienes permisos." });
     }
 
-    // Obtener la wishlist del usuario
+
     console.log(`Solicitando wishlist para SteamID: ${userId}`);
     const wishlistResponse = await fetch(
       `https://api.steampowered.com/IWishlistService/GetWishlist/v1/?key=7D015CE6D54B9B33854A408D92E3BCE1&steamid=${userId}`
@@ -263,12 +261,10 @@ router.post("/add-wishlist-to-group", async (req, res) => {
     const wishlist = await wishlistResponse.json();
     console.log("Respuesta de la wishlist:", JSON.stringify(wishlist, null, 2));
 
-    // Verificar la estructura de la respuesta
     if (wishlist && wishlist.response && Array.isArray(wishlist.response.items)) {
-      // Iterar sobre cada item en la wishlist
       for (const item of wishlist.response.items) {
         const appid = item.appid;
-        const priority = item.priority; // Asumiendo que 'priority' es de la wishlist
+        const priority = item.priority; 
 
         try {
           console.log(`Obteniendo detalles del juego AppID: ${appid}`);
@@ -280,14 +276,12 @@ router.post("/add-wishlist-to-group", async (req, res) => {
 
           const { nombre_juego, desarrollador, genero, plataforma } = gameDetails;
 
-          // Verificar si el juego ya existe en la tabla Juego
           const juegoExiste = await sql(
             `SELECT 1 FROM Juego WHERE id_juego = $1`,
             [appid]
           );
 
           if (juegoExiste.length === 0) {
-            // Insertar el juego en la tabla Juego
             try {
               await sql(
                 `INSERT INTO Juego (id_juego, nombre_juego, desarrollador, genero, plataforma)
@@ -297,25 +291,22 @@ router.post("/add-wishlist-to-group", async (req, res) => {
               console.log(`Juego insertado en la base de datos: ${appid}`);
             } catch (dbError) {
               console.error(`Error al insertar juego ${appid} en la base de datos:`, dbError);
-              continue; // Saltar este juego y continuar con el siguiente
+              continue;
             }
           }
 
-          // Obtener el género del juego desde la tabla Juego
           const juego = await sql(
             `SELECT genero FROM Juego WHERE id_juego = $1`,
             [appid]
           );
           const juegoGenero = juego.length > 0 ? juego[0].genero : 'Desconocido';
 
-          // Verificar si el interés ya existe
           const interesExiste = await sql(
             `SELECT 1 FROM Interes WHERE id_grupo = $1 AND id_juego = $2 AND id_usuario = $3`,
             [groupId, appid, userId]
           );
 
           if (interesExiste.length === 0) {
-            // Insertar en Interes
             try {
               await sql(
                 `INSERT INTO Interes (id_grupo, id_juego, id_usuario, genero, prioridad, fecha_registro)
@@ -325,12 +316,12 @@ router.post("/add-wishlist-to-group", async (req, res) => {
               console.log(`Interés insertado para el juego ${appid} en el grupo ${groupId}`);
             } catch (dbError) {
               console.error(`Error al insertar interés para el juego ${appid}:`, dbError);
-              continue; // Saltar este interés y continuar
+              continue;
             }
           }
         } catch (error) {
           console.error(`Error al procesar el juego AppID ${appid}:`, error);
-          continue; // Saltar este juego y continuar
+          continue; 
         }
       }
 
@@ -345,13 +336,12 @@ router.post("/add-wishlist-to-group", async (req, res) => {
   }
 });
 
-// Eliminar interés del grupo (solo para administradores)
+
 router.delete("/interest/:id", async (req, res) => {
   const userId = req.user._json.steamid;
   const interestId = req.params.id;
 
   try {
-    // Obtener el interés y el grupo al que pertenece
     const interest = await sql(
       `SELECT I.id_grupo
        FROM Interes I
@@ -365,7 +355,6 @@ router.delete("/interest/:id", async (req, res) => {
 
     const groupId = interest[0].id_grupo;
 
-    // Verificar si el usuario es administrador del grupo
     const group = await sql(
       `SELECT id_admin_grupo
        FROM GrupoFamiliar
@@ -377,7 +366,6 @@ router.delete("/interest/:id", async (req, res) => {
       return res.status(403).json({ error: "No tienes permisos para eliminar este interés." });
     }
 
-    // Eliminar el interés
     await sql(
       `DELETE FROM Interes
        WHERE id_interes = $1`,
@@ -391,7 +379,6 @@ router.delete("/interest/:id", async (req, res) => {
   }
 });
 
-// Editar nombre del grupo
 router.put("/edit", async (req, res) => {
   const { newName } = req.body;
   const userId = req.user._json.steamid;
@@ -420,7 +407,6 @@ router.put("/edit", async (req, res) => {
   }
 });
 
-// Eliminar grupo familiar
 router.delete("/delete", async (req, res) => {
   const userId = req.user._json.steamid;
 
@@ -436,31 +422,26 @@ router.delete("/delete", async (req, res) => {
 
     const groupId = group[0].id_grupo;
 
-    // Eliminar solicitudes de ingreso relacionadas con el grupo
     await sql(
       `DELETE FROM SolicitudIngreso WHERE id_grupo = $1`,
       [groupId]
     );
 
-    // Eliminar juegos del grupo
     await sql(
       `DELETE FROM JuegosEnGrupo WHERE id_grupo = $1`,
       [groupId]
     );
 
-    // Eliminar miembros del grupo
     await sql(
       `DELETE FROM MiembroGrupo WHERE id_grupo = $1`,
       [groupId]
     );
 
-    // Eliminar intereses del grupo
     await sql(
       `DELETE FROM Interes WHERE id_grupo = $1`,
       [groupId]
     );
 
-    // Eliminar el grupo
     await sql(
       `DELETE FROM GrupoFamiliar WHERE id_grupo = $1`,
       [groupId]
@@ -473,7 +454,6 @@ router.delete("/delete", async (req, res) => {
   }
 });
 
-// Buscar grupos familiares
 router.get("/search", async (req, res) => {
   const { query } = req.query;
 
@@ -492,13 +472,11 @@ router.get("/search", async (req, res) => {
   }
 });
 
-// Eliminar miembro del grupo (solo para administradores)
 router.delete("/member/:id", async (req, res) => {
   const userId = req.user._json.steamid;
   const memberId = req.params.id;
 
   try {
-    // Verificar si el usuario es administrador
     const group = await sql(
       `SELECT id_grupo FROM GrupoFamiliar WHERE id_admin_grupo = $1`,
       [userId]
@@ -510,12 +488,10 @@ router.delete("/member/:id", async (req, res) => {
 
     const groupId = group[0].id_grupo;
 
-    // No permitir que el administrador se elimine a sí mismo
     if (memberId == userId) {
       return res.status(400).json({ error: "No puedes eliminarte a ti mismo del grupo." });
     }
 
-    // Verificar que el miembro pertenece al grupo
     const member = await sql(
       `SELECT * FROM MiembroGrupo WHERE id_usuario = $1 AND id_grupo = $2`,
       [memberId, groupId]
@@ -525,25 +501,20 @@ router.delete("/member/:id", async (req, res) => {
       return res.status(404).json({ error: "El miembro no pertenece al grupo." });
     }
 
-    // Obtener los juegos del usuario en BibliotecaUsuario
     const userGames = await sql(
       `SELECT id_juego FROM BibliotecaUsuario WHERE id_usuario = $1`,
       [memberId]
     );
 
-    // Ajustar JuegosEnGrupo reduciendo la cantidad de copias o eliminando el juego si corresponde
     for (const game of userGames) {
       const appid = game.id_juego;
 
-      // Reducir cantidad_copias en JuegosEnGrupo
       await sql(
         `UPDATE JuegosEnGrupo
          SET cantidad_copias = cantidad_copias - 1
          WHERE id_grupo = $1 AND id_juego = $2`,
         [groupId, appid]
       );
-
-      // Eliminar el juego de JuegosEnGrupo si cantidad_copias es 0
       await sql(
         `DELETE FROM JuegosEnGrupo
          WHERE id_grupo = $1 AND id_juego = $2 AND cantidad_copias <= 0`,
@@ -551,13 +522,11 @@ router.delete("/member/:id", async (req, res) => {
       );
     }
 
-    // Eliminar juegos del usuario de BibliotecaUsuario
     await sql(
       `DELETE FROM BibliotecaUsuario WHERE id_usuario = $1`,
       [memberId]
     );
 
-    // Eliminar miembro del grupo
     await sql(
       `DELETE FROM MiembroGrupo WHERE id_usuario = $1 AND id_grupo = $2`,
       [memberId, groupId]
@@ -570,12 +539,10 @@ router.delete("/member/:id", async (req, res) => {
   }
 });
 
-// Dejar el grupo (para miembros que no son administradores)
 router.post("/leave", async (req, res) => {
   const userId = req.user._json.steamid;
 
   try {
-    // Verificar si el usuario pertenece a un grupo
     const membership = await sql(
       `SELECT * FROM MiembroGrupo WHERE id_usuario = $1`,
       [userId]
@@ -587,7 +554,6 @@ router.post("/leave", async (req, res) => {
 
     const groupId = membership[0].id_grupo;
 
-    // Verificar si el usuario es administrador
     const group = await sql(
       `SELECT id_admin_grupo FROM GrupoFamiliar WHERE id_grupo = $1`,
       [groupId]
@@ -597,17 +563,14 @@ router.post("/leave", async (req, res) => {
       return res.status(400).json({ error: "El administrador no puede dejar el grupo. Debe eliminar el grupo o transferir la administración." });
     }
 
-    // Obtener los juegos del usuario en BibliotecaUsuario
     const userGames = await sql(
       `SELECT id_juego FROM BibliotecaUsuario WHERE id_usuario = $1`,
       [userId]
     );
 
-    // Ajustar JuegosEnGrupo reduciendo la cantidad de copias o eliminando el juego si corresponde
     for (const game of userGames) {
       const appid = game.id_juego;
 
-      // Reducir cantidad_copias en JuegosEnGrupo
       await sql(
         `UPDATE JuegosEnGrupo
          SET cantidad_copias = cantidad_copias - 1
@@ -615,7 +578,6 @@ router.post("/leave", async (req, res) => {
         [groupId, appid]
       );
 
-      // Eliminar el juego de JuegosEnGrupo si cantidad_copias es 0
       await sql(
         `DELETE FROM JuegosEnGrupo
          WHERE id_grupo = $1 AND id_juego = $2 AND cantidad_copias <= 0`,
@@ -623,13 +585,11 @@ router.post("/leave", async (req, res) => {
       );
     }
 
-    // Eliminar juegos del usuario de BibliotecaUsuario
     await sql(
       `DELETE FROM BibliotecaUsuario WHERE id_usuario = $1`,
       [userId]
     );
 
-    // Eliminar miembro del grupo
     await sql(
       `DELETE FROM MiembroGrupo WHERE id_usuario = $1 AND id_grupo = $2`,
       [userId, groupId]
@@ -642,13 +602,11 @@ router.post("/leave", async (req, res) => {
   }
 });
 
-// Cambiar rol de un miembro (solo para administradores)
 router.post("/change-role", async (req, res) => {
   const userId = req.user._json.steamid;
   const { memberId, newRole } = req.body;
 
   try {
-    // Verificar si el usuario es administrador
     const group = await sql(
       `SELECT id_grupo, id_admin_grupo FROM GrupoFamiliar WHERE id_admin_grupo = $1`,
       [userId]
@@ -660,7 +618,6 @@ router.post("/change-role", async (req, res) => {
 
     const groupId = group[0].id_grupo;
 
-    // Verificar que el miembro pertenece al grupo
     const member = await sql(
       `SELECT * FROM MiembroGrupo WHERE id_usuario = $1 AND id_grupo = $2`,
       [memberId, groupId]
@@ -671,20 +628,17 @@ router.post("/change-role", async (req, res) => {
     }
 
     if (newRole === 'admin') {
-      // Actualizar id_admin_grupo en GrupoFamiliar
       await sql(
         `UPDATE GrupoFamiliar SET id_admin_grupo = $1 WHERE id_grupo = $2`,
         [memberId, groupId]
       );
 
-      // Actualizar rol del antiguo admin a 'miembro'
       await sql(
         `UPDATE MiembroGrupo SET rol = 'miembro' WHERE id_usuario = $1 AND id_grupo = $2`,
         [userId, groupId]
       );
     }
 
-    // Actualizar rol del miembro
     await sql(
       `UPDATE MiembroGrupo SET rol = $1 WHERE id_usuario = $2 AND id_grupo = $3`,
       [newRole, memberId, groupId]
@@ -697,12 +651,10 @@ router.post("/change-role", async (req, res) => {
   }
 });
 
-// Obtener grupos recomendados
 router.get("/recommendations", async (req, res) => {
   const userId = req.user._json.steamid;
 
   try {
-    // Obtener wishlist del usuario
     const wishlistResponse = await fetch(
       `https://api.steampowered.com/IWishlistService/GetWishlist/v1/?key=7D015CE6D54B9B33854A408D92E3BCE1&steamid=${userId}`
     );
@@ -713,15 +665,12 @@ router.get("/recommendations", async (req, res) => {
       wishlistAppIds = wishlistData.response.items.map(item => item.appid);
     }
 
-    // Limpiar intereses existentes del usuario
     await sql(
       `DELETE FROM InteresesUsuario WHERE id_usuario = $1`,
       [userId]
     );
 
-    // Guardar wishlist en InteresesUsuario
     for (const appid of wishlistAppIds) {
-      // Verificar si el juego ya existe en la tabla Juego
       const juegoExiste = await sql(
         `SELECT 1 FROM Juego WHERE id_juego = $1`,
         [appid]
@@ -732,11 +681,10 @@ router.get("/recommendations", async (req, res) => {
         await sql(
           `INSERT INTO Juego (id_juego, nombre_juego, desarrollador, genero, plataforma)
            VALUES ($1, $2, $3, $4, $5)`,
-          [appid, 'Desconocido', desarrollador, genero, plataforma] // Nombre del juego no disponible en esta respuesta
+          [appid, 'Desconocido', desarrollador, genero, plataforma]
         );
       }
 
-      // Insertar en InteresesUsuario evitando duplicados
       await sql(
         `INSERT INTO InteresesUsuario (id_usuario, id_juego)
          VALUES ($1, $2)
@@ -745,7 +693,6 @@ router.get("/recommendations", async (req, res) => {
       );
     }
 
-    // Obtener grupos junto con el número de juegos coincidentes
     const groups = await sql(
       `SELECT GF.id_grupo, GF.nombre_grupo, GF.pais,
               COUNT(DISTINCT JG.id_juego) AS total_juegos,
@@ -766,13 +713,11 @@ router.get("/recommendations", async (req, res) => {
   }
 });
 
-// Solicitar unirse a un grupo
 router.post("/request-join", async (req, res) => {
   const userId = req.user._json.steamid;
   const { groupId } = req.body;
 
   try {
-    // Verificar si el usuario ya pertenece a un grupo
     const existingGroup = await sql(
       `SELECT * FROM MiembroGrupo WHERE id_usuario = $1`,
       [userId]
@@ -782,7 +727,6 @@ router.post("/request-join", async (req, res) => {
       return res.status(400).json({ error: "Ya perteneces a un grupo familiar." });
     }
 
-    // Verificar si ya existe una solicitud pendiente para este grupo
     const existingRequest = await sql(
       `SELECT * FROM SolicitudIngreso
        WHERE id_usuario = $1 AND id_grupo = $2 AND estado_solicitud = 'pendiente'`,
@@ -793,7 +737,6 @@ router.post("/request-join", async (req, res) => {
       return res.status(400).json({ error: "Ya has solicitado unirte a este grupo. Por favor espera a que el administrador responda." });
     }
 
-    // Crear solicitud de ingreso
     await sql(
       `INSERT INTO SolicitudIngreso (id_usuario, id_grupo, estado_solicitud, fecha_solicitud)
        VALUES ($1, $2, 'pendiente', CURRENT_DATE)`,
@@ -807,18 +750,15 @@ router.post("/request-join", async (req, res) => {
   }
 });
 
-// Responder a una solicitud de ingreso (aceptar o rechazar)
 router.post("/respond-request", async (req, res) => {
   const userId = req.user._json.steamid;
   const { solicitudId, respuesta } = req.body;
 
   try {
-    // Verificar que la respuesta sea válida
     if (!['aceptada', 'rechazada'].includes(respuesta)) {
       return res.status(400).json({ error: "Respuesta inválida." });
     }
 
-    // Obtener la solicitud
     const solicitud = await sql(
       `SELECT * FROM SolicitudIngreso WHERE id_solicitud = $1 AND estado_solicitud = 'pendiente'`,
       [solicitudId]
@@ -830,7 +770,6 @@ router.post("/respond-request", async (req, res) => {
 
     const groupId = solicitud[0].id_grupo;
 
-    // Verificar si el usuario es administrador del grupo
     const group = await sql(
       `SELECT id_admin_grupo FROM GrupoFamiliar WHERE id_grupo = $1`,
       [groupId]
@@ -840,7 +779,6 @@ router.post("/respond-request", async (req, res) => {
       return res.status(403).json({ error: "No tienes permisos para responder esta solicitud." });
     }
 
-    // Actualizar el estado de la solicitud
     await sql(
       `UPDATE SolicitudIngreso
        SET estado_solicitud = $1
@@ -851,14 +789,12 @@ router.post("/respond-request", async (req, res) => {
     if (respuesta === 'aceptada') {
       const solicitanteId = solicitud[0].id_usuario;
 
-      // Agregar al usuario como miembro del grupo
       await sql(
         `INSERT INTO MiembroGrupo (id_usuario, id_grupo, fecha_ingreso, rol)
          VALUES ($1, $2, CURRENT_DATE, 'miembro')`,
         [solicitanteId, groupId]
       );
 
-      // **Agregar los juegos del usuario al grupo y a BibliotecaUsuario**
       const response = await fetch(
         `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=7D015CE6D54B9B33854A408D92E3BCE1&steamid=${solicitanteId}&include_appinfo=true`
       );
@@ -868,7 +804,6 @@ router.post("/respond-request", async (req, res) => {
         for (const game of data.response.games) {
           const { appid, name } = game;
 
-          // Verificar si el juego ya existe en la tabla Juego
           const juegoExiste = await sql(
             `SELECT 1 FROM Juego WHERE id_juego = $1`,
             [appid]
@@ -883,7 +818,6 @@ router.post("/respond-request", async (req, res) => {
             );
           }
 
-          // Agregar a BibliotecaUsuario
           await sql(
             `INSERT INTO BibliotecaUsuario (id_juego, id_usuario, fecha_adicion)
              VALUES ($1, $2, CURRENT_DATE)
@@ -891,14 +825,12 @@ router.post("/respond-request", async (req, res) => {
             [appid, solicitanteId]
           );
 
-          // Verificar si el juego ya está en JuegosEnGrupo para este grupo
           const existingGameInGroup = await sql(
             `SELECT * FROM JuegosEnGrupo WHERE id_grupo = $1 AND id_juego = $2`,
             [groupId, appid]
           );
 
           if (existingGameInGroup.length > 0) {
-            // Si existe, incrementar cantidad_copias en 1
             await sql(
               `UPDATE JuegosEnGrupo
                SET cantidad_copias = cantidad_copias + 1, fecha_actualizacion = CURRENT_DATE
@@ -906,7 +838,6 @@ router.post("/respond-request", async (req, res) => {
               [groupId, appid]
             );
           } else {
-            // Si no existe, insertar en JuegosEnGrupo con cantidad_copias = 1
             await sql(
               `INSERT INTO JuegosEnGrupo (id_grupo, id_juego, cantidad_copias, fecha_actualizacion)
                VALUES ($1, $2, 1, CURRENT_DATE)`,
@@ -924,18 +855,15 @@ router.post("/respond-request", async (req, res) => {
   }
 });
 
-// Encontrar jugadores para el grupo
 router.get("/find-players-for-group", async (req, res) => {
   const { groupId } = req.query;
-  const userId = req.user._json.steamid; // ID del usuario actual
+  const userId = req.user._json.steamid; 
 
-  // Validar si se ha proporcionado el ID del grupo
   if (!groupId) {
     return res.status(400).json({ error: "El ID del grupo es requerido." });
   }
 
   try {
-    // Buscar jugadores con coincidencias de juegos en común con el grupo
     const playersWithMatches = await sql(
       `SELECT 
          J.id_usuario, 
@@ -956,7 +884,6 @@ router.get("/find-players-for-group", async (req, res) => {
       [userId, groupId]
     );
 
-    // Si no se han encontrado 10 jugadores, buscar más sin coincidencias de juegos
     if (playersWithMatches.length < 10) {
       const additionalPlayers = await sql(
         `SELECT 
@@ -979,11 +906,9 @@ router.get("/find-players-for-group", async (req, res) => {
         [userId, groupId, 10 - playersWithMatches.length]
       );
 
-      // Agregar los jugadores adicionales al array de resultados
       playersWithMatches.push(...additionalPlayers);
     }
 
-    // Responder con la lista de jugadores
     return res.json({ success: true, players: playersWithMatches });
   } catch (error) {
     console.error("Error al buscar jugadores para el grupo:", error);
@@ -991,7 +916,6 @@ router.get("/find-players-for-group", async (req, res) => {
   }
 });
 
-// Gestionar solicitudes de unión
 router.post("/request-join-group", async (req, res) => {
   const { groupId, userId } = req.body;
 
@@ -1000,7 +924,6 @@ router.post("/request-join-group", async (req, res) => {
   }
 
   try {
-    // Registrar la solicitud en la base de datos
     await sql(
       `INSERT INTO SolicitudIngresoGrupoUsuario (id_usuario, id_grupo, estado_solicitud, fecha_solicitud)
        VALUES ($1, $2, 'pendiente', CURRENT_DATE)
@@ -1008,7 +931,6 @@ router.post("/request-join-group", async (req, res) => {
       [userId, groupId]
     );
 
-    // Notificar al administrador del grupo
     const adminInfo = await sql(
       `SELECT id_admin_grupo 
        FROM GrupoFamiliar 
@@ -1018,7 +940,6 @@ router.post("/request-join-group", async (req, res) => {
 
     if (adminInfo.length > 0) {
       const adminId = adminInfo[0].id_admin_grupo;
-      // Aquí podrías integrar un sistema de notificaciones real
       console.log(`Notificación: Usuario ${userId} solicitó unirse al grupo ${groupId}, notificar a admin ${adminId}.`);
     }
 
@@ -1029,9 +950,8 @@ router.post("/request-join-group", async (req, res) => {
   }
 });
 
-// Aceptar invitación al grupo
 router.post("/accept-invitation", async (req, res) => {
-  const userId = req.user._json.steamid; // Usuario actual
+  const userId = req.user._json.steamid; 
   const { groupId } = req.body;
 
   if (!groupId) {
@@ -1039,7 +959,6 @@ router.post("/accept-invitation", async (req, res) => {
   }
 
   try {
-    // Verificar que la invitación exista y esté pendiente
     const invitation = await sql(
       `SELECT * FROM SolicitudIngresoGrupoUsuario 
        WHERE id_usuario = $1 AND id_grupo = $2 AND estado_solicitud = 'pendiente'`,
@@ -1050,7 +969,6 @@ router.post("/accept-invitation", async (req, res) => {
       return res.status(404).json({ error: "No tienes invitaciones pendientes para este grupo." });
     }
 
-    // Marcar la invitación como aceptada
     await sql(
       `UPDATE SolicitudIngresoGrupoUsuario 
        SET estado_solicitud = 'aceptada'
@@ -1058,14 +976,12 @@ router.post("/accept-invitation", async (req, res) => {
       [userId, groupId]
     );
 
-    // Agregar al usuario como miembro del grupo
     await sql(
       `INSERT INTO MiembroGrupo (id_usuario, id_grupo, fecha_ingreso, rol)
        VALUES ($1, $2, CURRENT_DATE, 'miembro')`,
       [userId, groupId]
     );
 
-    // Agregar los juegos del usuario al grupo
     const userGames = await sql(
       `SELECT id_juego FROM BibliotecaUsuario WHERE id_usuario = $1`,
       [userId]
@@ -1080,7 +996,6 @@ router.post("/accept-invitation", async (req, res) => {
       );
 
       if (existingGame.length > 0) {
-        // Incrementar cantidad de copias
         await sql(
           `UPDATE JuegosEnGrupo
            SET cantidad_copias = cantidad_copias + 1, fecha_actualizacion = CURRENT_DATE
@@ -1088,7 +1003,7 @@ router.post("/accept-invitation", async (req, res) => {
           [groupId, appid]
         );
       } else {
-        // Insertar nuevo juego en el grupo
+
         await sql(
           `INSERT INTO JuegosEnGrupo (id_grupo, id_juego, cantidad_copias, fecha_actualizacion)
            VALUES ($1, $2, 1, CURRENT_DATE)`,
@@ -1096,11 +1011,10 @@ router.post("/accept-invitation", async (req, res) => {
         );
       }
     }
-
-    res.json({ success: true, message: "Has aceptado la invitación y ahora eres miembro del grupo." });
-  } catch (error) {
+    res.json({success: true, message: "Has aceptado la invitación y ahora eres miembro del grupo."});
+  }catch(error){
     console.error("Error al aceptar la invitación:", error);
-    res.status(500).json({ error: "Error al aceptar la invitación." });
+    res.status(500).json({error: "Error al aceptar la invitación."});
   }
 });
 
