@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameNest - Integración con Steam</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <!-- AOS Library -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: 'Roboto', sans-serif;
+    }
+    .navbar {
+      background-color: #1b2838;
+    }
+    .navbar-brand {
+      font-weight: bold;
+      color: #66c0f4;
+    }
+    .navbar-brand:hover {
+      color: #ffffff;
+    }
+    .btn-steam {
+      background-color: #171a21;
+      color: #c7d5e0;
+      border: none;
+    }
+    .btn-steam:hover {
+      background-color: #66c0f4;
+      color: #ffffff;
+    }
+    .card {
+      background-color: #1c1c1c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+    }
+    .card-header, .card-footer {
+      background-color: #232323;
+      border-radius: 10px 10px 0 0;
+    }
+    .list-group-item {
+      background-color: #1c1c1c;
+      color: white;
+      border: none;
+    }
+    .list-group-item:hover {
+      background-color: #2a475e;
+    }
+    .avatar {
+      border-radius: 50%;
+      width: 100px;
+      border: 3px solid #66c0f4;
+    }
+    .hidden {
+      display: none;
+    }
+    .modal-content {
+      background-color: #1c1c1c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+    }
+    .modal-header, .modal-footer {
+      border: none;
+    }
+    .form-control {
+      background-color: #232323;
+      color: white;
+      border: none;
+    }
+    .form-control:focus {
+      background-color: #232323;
+      color: white;
+      border: none;
+      box-shadow: none;
+    }
+    .nav-link {
+      color: white;
+    }
+    .nav-link:hover {
+      color: #66c0f4;
+    }
+    .btn-close-white {
+      filter: invert(1);
+    }
+    /* Animaciones personalizadas */
+    .animate__animated {
+      --animate-duration: 1s;
+    }
+  </style>
+</head>
+<body>
+  <!-- Barra de navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#"><i class="fas fa-gamepad"></i> GameNest</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a id="logout" class="nav-link" href="#"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <div class="container my-5">
+    <h1 class="text-center mb-4 animate__animated animate__fadeInDown">Bienvenido a <span style="color: #66c0f4;">GameNest</span></h1>
+
+    <!-- Sección para usuarios no autenticados -->
+    <div id="login-section" class="text-center animate__animated animate__fadeInUp">
+      <p>Por favor, inicia sesión con Steam para continuar:</p>
+      <a href="/auth/steam">
+        <button class="btn btn-steam btn-lg"><i class="fab fa-steam"></i> Login con Steam</button>
+      </a>
+    </div>
+
+    <!-- Sección para usuarios autenticados -->
+    <div id="profile-section" class="mt-4 hidden">
+      <div class="text-center">
+        <img id="avatar" src="" alt="Avatar" class="avatar animate__animated animate__zoomIn">
+        <h2 id="username" class="mt-3"></h2>
+        <a id="profileLink" href="" target="_blank"><i class="fas fa-external-link-alt"></i> Ver perfil en Steam</a>
+      </div>
+
+      <div class="mt-5">
+        <h3 class="text-center">Grupos Familiares</h3>
+        <!-- Grupo Familiar -->
+        <div id="my-group" class="mt-4 hidden" data-aos="fade-up">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h4 id="group-name"><i class="fas fa-users"></i> Mi Grupo Familiar</h4>
+              <div id="admin-actions" class="mt-2 d-flex gap-2">
+                <button id="edit-group-btn" class="btn btn-sm btn-outline-light"><i class="fas fa-edit"></i> Editar Nombre</button>
+                <button id="delete-group-btn" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash-alt"></i> Eliminar Grupo</button>
+              </div>
+            </div>
+            <div class="card-body row">
+              <!-- Juegos -->
+              <div class="col-md-4">
+                <h5><i class="fas fa-gamepad"></i> Juegos del Grupo</h5>
+                <ul id="group-games" class="list-group"></ul>
+              </div>
+              <!-- Intereses -->
+              <div class="col-md-4">
+                <h5><i class="fas fa-heart"></i> Intereses del Grupo</h5>
+                <button id="add-wishlist-btn" class="btn btn-sm btn-steam mb-3"><i class="fas fa-plus"></i> Agregar mi wishlist al grupo</button>
+                <ul id="group-interests" class="list-group"></ul>
+              </div>
+              <!-- Miembros -->
+              <div class="col-md-4">
+                <h5><i class="fas fa-user-friends"></i> Miembros del Grupo</h5>
+                <ul id="group-members" class="list-group"></ul>
+              </div>
+            </div>
+            <div class="card-footer text-end">
+              <button id="leave-group-btn" class="btn btn-outline-light hidden"><i class="fas fa-sign-out-alt"></i> Salir del Grupo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección de invitaciones pendientes -->
+        <div id="invitations-section" class="mt-4 hidden" data-aos="fade-up">
+          <h5><i class="fas fa-envelope-open-text"></i> Invitaciones Pendientes</h5>
+          <ul id="pending-invitations" class="list-group"></ul>
+        </div>
+
+        <!-- Sección de solicitudes de ingreso -->
+        <div id="join-requests-section" class="mt-4 hidden" data-aos="fade-up">
+          <h5><i class="fas fa-user-plus"></i> Solicitudes de Ingreso</h5>
+          <ul id="join-requests" class="list-group"></ul>
+        </div>
+
+        <!-- Botones adicionales -->
+        <div class="d-flex flex-wrap gap-3 mt-3 justify-content-center">
+          <button id="create-group-btn" class="btn btn-steam hidden"><i class="fas fa-users"></i> Crear Grupo Familiar</button>
+          <button id="search-group-btn" class="btn btn-outline-light"><i class="fas fa-search"></i> Buscar Grupos Familiares</button>
+          <button id="recommendations-btn" class="btn btn-outline-light"><i class="fas fa-star"></i> Ver Grupos Recomendados</button>
+          <button id="find-players-btn" class="btn btn-outline-light hidden"><i class="fas fa-user-friends"></i> Encontrar Jugadores</button>
+        </div>
+
+        <!-- Sección de búsqueda de grupos -->
+        <div id="group-search" class="mt-4 hidden" data-aos="fade-up">
+          <h5><i class="fas fa-search"></i> Buscar Grupos</h5>
+          <div class="input-group mb-3">
+            <input id="search-query" type="text" class="form-control" placeholder="Nombre del grupo">
+            <button id="search-group" class="btn btn-steam"><i class="fas fa-search"></i></button>
+          </div>
+          <ul id="group-results" class="list-group"></ul>
+        </div>
+
+        <!-- Sección de recomendaciones -->
+        <div id="group-recommendations" class="mt-4 hidden" data-aos="fade-up">
+          <h5><i class="fas fa-star"></i> Grupos Recomendados</h5>
+          <ul id="recommendations-list" class="list-group"></ul>
+        </div>
+
+        <!-- Sección de jugadores recomendados -->
+        <div id="find-players-section" class="mt-4 hidden" data-aos="fade-up">
+          <h5><i class="fas fa-user-friends"></i> Jugadores Recomendados</h5>
+          <ul id="recommended-players" class="list-group"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modales -->
+  <!-- Modal para crear grupo -->
+  <div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="createGroupModalLabel" class="modal-title">Crear Grupo Familiar</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input id="group-name-input" type="text" class="form-control" placeholder="Nombre del grupo">
+        </div>
+        <div class="modal-footer">
+          <button id="confirm-create-group" type="button" class="btn btn-steam"><i class="fas fa-plus"></i> Crear Grupo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para editar nombre del grupo -->
+  <div class="modal fade" id="editGroupModal" tabindex="-1" aria-labelledby="editGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="editGroupModalLabel" class="modal-title">Editar Nombre del Grupo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input id="new-group-name-input" type="text" class="form-control" placeholder="Nuevo nombre del grupo">
+        </div>
+        <div class="modal-footer">
+          <button id="confirm-edit-group" type="button" class="btn btn-steam"><i class="fas fa-save"></i> Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para confirmar eliminación del grupo -->
+  <div class="modal fade" id="deleteGroupModal" tabindex="-1" aria-labelledby="deleteGroupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="deleteGroupModalLabel" class="modal-title">Eliminar Grupo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>¿Estás seguro de que deseas eliminar el grupo? Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer">
+          <button id="confirm-delete-group" type="button" class="btn btn-danger"><i class="fas fa-trash-alt"></i> Eliminar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para mostrar mensajes -->
+  <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="messageModalLabel" class="modal-title">Mensaje</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="messageModalBody">
+          <!-- Mensaje dinámico -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-steam" data-bs-dismiss="modal">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pie de página -->
+  <footer class="footer mt-5">
+    <div class="container text-center">
+      <p>&copy; 2024 GameNest. Todos los derechos reservados.</p>
+      <p>Síguenos en nuestras redes sociales:</p>
+      <a href="#" class="me-2"><i class="fab fa-facebook fa-2x"></i></a>
+      <a href="#" class="me-2"><i class="fab fa-twitter fa-2x"></i></a>
+      <a href="#"><i class="fab fa-instagram fa-2x"></i></a>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS y scripts personalizados -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- AOS Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+  <!-- Font Awesome -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+  <script>
+    // Inicializar AOS
+    AOS.init();
+
+    let groupId = null;
+    let createGroupModal = new bootstrap.Modal(document.getElementById('createGroupModal'));
+    let editGroupModal = new bootstrap.Modal(document.getElementById('editGroupModal'));
+    let deleteGroupModal = new bootstrap.Modal(document.getElementById('deleteGroupModal'));
+    let messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+
+    async function checkUser() {
+      try {
+        const res = await fetch("/user/profile");
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById("username").textContent = data.profile.displayName;
+          document.getElementById("avatar").src = data.profile._json.avatarfull;
+          document.getElementById("profileLink").href = data.profile._json.profileurl;
+
+          document.getElementById("profile-section").classList.remove("hidden");
+          document.getElementById("login-section").classList.add("hidden");
+
+          // Cargar información del grupo
+          await loadMyGroup();
+
+          // Cargar invitaciones pendientes
+          await loadPendingInvitations();
+        } else {
+          document.getElementById("login-section").classList.remove("hidden");
+          document.getElementById("profile-section").classList.add("hidden");
+        }
+      } catch (error) {
+        console.error("Error al verificar el usuario:", error);
+        document.getElementById("login-section").classList.remove("hidden");
+        document.getElementById("profile-section").classList.add("hidden");
+      }
+    }
+
+    async function loadMyGroup() {
+      try {
+        const res = await fetch("/group/my-group");
+        const data = await res.json();
+
+        const groupSection = document.getElementById("my-group");
+        const createGroupButton = document.getElementById("create-group-btn");
+        const findPlayersBtn = document.getElementById("find-players-btn");
+
+        if (data.success) {
+          groupSection.classList.remove("hidden");
+          createGroupButton.classList.add("hidden");
+
+          document.getElementById("group-name").textContent = data.group.nombre_grupo;
+          groupId = data.group.id_grupo;
+
+          // Juegos del grupo
+          const gamesList = document.getElementById("group-games");
+          gamesList.innerHTML = "";
+          data.games.forEach(game => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item", "animate__animated", "animate__fadeIn");
+            li.textContent = game.nombre_juego;
+            gamesList.appendChild(li);
+          });
+
+          // Intereses del grupo
+          const interestsList = document.getElementById("group-interests");
+          interestsList.innerHTML = "";
+          data.interests.forEach(interest => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
+            const span = document.createElement("span");
+            span.textContent = interest.nombre_juego;
+            li.appendChild(span);
+
+            if (data.isAdmin) {
+              const deleteBtn = document.createElement("button");
+              deleteBtn.classList.add("btn", "btn-sm", "btn-outline-danger");
+              deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar';
+              deleteBtn.onclick = async () => {
+                if (confirm(`¿Estás seguro de eliminar el interés "${interest.nombre_juego}"?`)) {
+                  const res = await fetch(`/group/interest/${interest.id_interes}`, { method: "DELETE" });
+                  const result = await res.json();
+                  if (result.success) {
+                    showMessage(result.message);
+                    await loadMyGroup();
+                  } else {
+                    showMessage(result.error);
+                  }
+                }
+              };
+              li.appendChild(deleteBtn);
+            }
+            interestsList.appendChild(li);
+          });
+
+          // Miembros del grupo
+          const membersList = document.getElementById("group-members");
+          membersList.innerHTML = "";
+          data.members.forEach(member => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
+            li.textContent = `${member.nombre_usuario} (${member.rol})`;
+            li.style.whiteSpace = "pre-wrap"; // Para manejar bien los espacios
+
+            if (data.isAdmin && member.id_usuario !== data.group.id_admin_grupo) {
+              const btnGroup = document.createElement("div");
+              btnGroup.classList.add("btn-group");
+
+              const removeBtn = document.createElement("button");
+              removeBtn.classList.add("btn", "btn-sm", "btn-outline-danger");
+              removeBtn.innerHTML = '<i class="fas fa-user-minus"></i> Eliminar';
+              removeBtn.onclick = async () => {
+                if (confirm(`¿Estás seguro de eliminar a "${member.nombre_usuario}" del grupo?`)) {
+                  const res = await fetch(`/group/member/${member.id_usuario}`, { method: "DELETE" });
+                  const result = await res.json();
+                  if (result.success) {
+                    showMessage(result.message);
+                    await loadMyGroup();
+                  } else {
+                    showMessage(result.error);
+                  }
+                }
+              };
+
+              const changeRoleBtn = document.createElement("button");
+              changeRoleBtn.classList.add("btn", "btn-sm", "btn-outline-light");
+              changeRoleBtn.innerHTML = '<i class="fas fa-user-shield"></i> Hacer Admin';
+              changeRoleBtn.onclick = async () => {
+                if (confirm(`¿Estás seguro de hacer a "${member.nombre_usuario}" el administrador del grupo?`)) {
+                  const res = await fetch(`/group/change-role`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ memberId: member.id_usuario, newRole: 'admin' }),
+                  });
+                  const result = await res.json();
+                  if (result.success) {
+                    showMessage(result.message);
+                    await loadMyGroup();
+                  } else {
+                    showMessage(result.error);
+                  }
+                }
+              };
+
+              btnGroup.appendChild(removeBtn);
+              btnGroup.appendChild(changeRoleBtn);
+              li.appendChild(btnGroup);
+            }
+            membersList.appendChild(li);
+          });
+
+          // Mostrar solicitudes de ingreso si es admin
+          const joinRequestsSection = document.getElementById("join-requests-section");
+          const joinRequestsList = document.getElementById("join-requests");
+          if (data.isAdmin && data.joinRequests && data.joinRequests.length > 0) {
+            joinRequestsSection.classList.remove("hidden");
+            joinRequestsList.innerHTML = "";
+            data.joinRequests.forEach(request => {
+              const li = document.createElement("li");
+              li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
+              li.textContent = `${request.nombre_usuario} - Fecha: ${request.fecha_solicitud}`;
+              const acceptBtn = document.createElement("button");
+              acceptBtn.classList.add("btn", "btn-sm", "btn-steam");
+              acceptBtn.innerHTML = '<i class="fas fa-check"></i> Aceptar';
+              acceptBtn.onclick = async () => {
+                await respondToRequest(request.id_solicitud, 'aceptada');
+              };
+              const rejectBtn = document.createElement("button");
+              rejectBtn.classList.add("btn", "btn-sm", "btn-outline-danger");
+              rejectBtn.innerHTML = '<i class="fas fa-times"></i> Rechazar';
+              rejectBtn.onclick = async () => {
+                await respondToRequest(request.id_solicitud, 'rechazada');
+              };
+              const btnGroup = document.createElement("div");
+              btnGroup.classList.add("btn-group");
+              btnGroup.appendChild(acceptBtn);
+              btnGroup.appendChild(rejectBtn);
+              li.appendChild(btnGroup);
+              joinRequestsList.appendChild(li);
+            });
+          } else {
+            joinRequestsSection.classList.add("hidden");
+          }
+
+          // Mostrar/ocultar botones según el rol
+          document.getElementById("admin-actions").style.display = data.isAdmin ? "flex" : "none";
+          document.getElementById("add-wishlist-btn").style.display = "inline-block";
+
+          // Mostrar botón para salir del grupo si no es admin
+          const leaveGroupBtn = document.getElementById("leave-group-btn");
+          if (!data.isAdmin) {
+            leaveGroupBtn.classList.remove("hidden");
+          } else {
+            leaveGroupBtn.classList.add("hidden");
+          }
+
+          findPlayersBtn.classList.remove("hidden");
+
+        } else {
+          groupSection.classList.add("hidden");
+          createGroupButton.classList.remove("hidden");
+          findPlayersBtn.classList.add("hidden");
+        }
+      } catch (error) {
+        console.error("Error al cargar el grupo:", error);
+      }
+    }
+
+    // Función para mostrar mensajes en el modal
+    function showMessage(message) {
+      document.getElementById("messageModalBody").textContent = message;
+      messageModal.show();
+    }
+
+    // Nueva función para responder a solicitudes
+    async function respondToRequest(solicitudId, respuesta) {
+      try {
+        const res = await fetch(`/group/respond-request`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ solicitudId, respuesta }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          showMessage(result.message);
+          await loadMyGroup();
+        } else {
+          showMessage(result.error);
+        }
+      } catch (error) {
+        console.error("Error al responder solicitud:", error);
+        showMessage("Error al responder la solicitud.");
+      }
+    }
+
+    document.getElementById("logout").addEventListener("click", async () => {
+      try {
+        await fetch("/auth/logout");
+        location.reload();
+      } catch (error) {
+        console.error("Error al cerrar sesión:", error);
+      }
+    });
+
+    document.getElementById("create-group-btn").addEventListener("click", () => {
+      createGroupModal.show();
+    });
+
+    document.getElementById("confirm-create-group").addEventListener("click", async () => {
+      const groupName = document.getElementById("group-name-input").value;
+      if (!groupName) {
+        showMessage("Por favor ingresa un nombre para el grupo.");
+        return;
+      }
+
+      const res = await fetch("/group/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombreGrupo: groupName }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showMessage("Grupo creado con éxito.");
+        createGroupModal.hide();
+        await loadMyGroup();
+      } else {
+        showMessage(data.error);
+      }
+    });
+
+    document.getElementById("edit-group-btn").addEventListener("click", () => {
+      editGroupModal.show();
+    });
+
+    document.getElementById("confirm-edit-group").addEventListener("click", async () => {
+      const newName = document.getElementById("new-group-name-input").value;
+      if (!newName) {
+        showMessage("Por favor ingresa un nuevo nombre para el grupo.");
+        return;
+      }
+
+      const res = await fetch("/group/edit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newName }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showMessage("Nombre del grupo actualizado.");
+        editGroupModal.hide();
+        await loadMyGroup();
+      } else {
+        showMessage(data.error);
+      }
+    });
+
+    document.getElementById("delete-group-btn").addEventListener("click", () => {
+      deleteGroupModal.show();
+    });
+
+    document.getElementById("confirm-delete-group").addEventListener("click", async () => {
+      const res = await fetch("/group/delete", { method: "DELETE" });
+      const data = await res.json();
+
+      if (data.success) {
+        showMessage("Grupo eliminado con éxito.");
+        deleteGroupModal.hide();
+        location.reload();
+      } else {
+        showMessage(data.error);
+      }
+    });
+
+    document.getElementById("search-group-btn").addEventListener("click", () => {
+      document.getElementById("group-search").classList.toggle("hidden");
+    });
+
+    document.getElementById("search-group").addEventListener("click", async () => {
+      const query = document.getElementById("search-query").value;
+      const res = await fetch(`/group/search?query=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      const results = document.getElementById("group-results");
+      results.innerHTML = "";
+      if (data.success) {
+        data.groups.forEach(group => {
+          const li = document.createElement("li");
+          li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
+          li.textContent = `${group.nombre_grupo} (${group.pais})`;
+          const requestJoinBtn = document.createElement("button");
+          requestJoinBtn.classList.add("btn", "btn-sm", "btn-steam");
+          requestJoinBtn.innerHTML = '<i class="fas fa-user-plus"></i> Solicitar unirse';
+          requestJoinBtn.onclick = async () => {
+            await requestToJoinGroup(group.id_grupo);
+          };
+          li.appendChild(requestJoinBtn);
+          results.appendChild(li);
+        });
+      } else {
+        showMessage("Error al buscar grupos.");
+      }
+    });
+
+    // Nueva función para solicitar unirse a un grupo
+    async function requestToJoinGroup(groupId) {
+      try {
+        const res = await fetch("/group/request-join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showMessage(data.message);
+        } else {
+          showMessage(data.error);
+        }
+      } catch (error) {
+        console.error("Error al solicitar unirse al grupo:", error);
+        showMessage("Error al solicitar unirse al grupo.");
+      }
+    }
+
+    document.getElementById("add-wishlist-btn").addEventListener("click", async () => {
+      try {
+        const res = await fetch("/group/add-wishlist-to-group", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showMessage(data.message);
+          await loadMyGroup();
+        } else {
+          showMessage(data.error);
+        }
+      } catch (error) {
+        console.error("Error al agregar wishlist:", error);
+        showMessage("Error al agregar wishlist al grupo.");
+      }
+    });
+
+    document.getElementById("recommendations-btn").addEventListener("click", async () => {
+      const recommendationsSection = document.getElementById("group-recommendations");
+      recommendationsSection.classList.toggle("hidden");
+
+      if (!recommendationsSection.classList.contains("hidden")) {
+        await loadRecommendations();
+      }
+    });
+
+    async function loadRecommendations() {
+      try {
+        const res = await fetch("/group/recommendations");
+        const data = await res.json();
+
+        const recommendationsList = document.getElementById("recommendations-list");
+        recommendationsList.innerHTML = "";
+
+        if (data.success) {
+          data.groups.forEach(group => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
+            li.textContent = `${group.nombre_grupo} - País: ${group.pais} - Juegos: ${group.total_juegos} - Coincidencias: ${group.matches}`;
+            const requestJoinBtn = document.createElement("button");
+            requestJoinBtn.classList.add("btn", "btn-sm", "btn-steam");
+            requestJoinBtn.innerHTML = '<i class="fas fa-user-plus"></i> Solicitar unirse';
+            requestJoinBtn.onclick = async () => {
+              await requestToJoinGroup(group.id_grupo);
+            };
+            li.appendChild(requestJoinBtn);
+            recommendationsList.appendChild(li);
+          });
+        } else {
+          showMessage("Error al obtener grupos recomendados.");
+        }
+      } catch (error) {
+        console.error("Error al cargar grupos recomendados:", error);
+        showMessage("Error al obtener grupos recomendados.");
+      }
+    }
+
+    // Evento para el botón "Salir del Grupo"
+    document.getElementById("leave-group-btn").addEventListener("click", async () => {
+      if (confirm("¿Estás seguro de que deseas salir del grupo?")) {
+        try {
+          const res = await fetch("/group/leave", { method: "POST" });
+          const data = await res.json();
+          if (data.success) {
+            showMessage(data.message);
+            location.reload();
+          } else {
+            showMessage(data.error);
+          }
+        } catch (error) {
+          console.error("Error al salir del grupo:", error);
+          showMessage("Error al salir del grupo.");
+        }
+      }
+    });
+
+    document.getElementById("find-players-btn").addEventListener("click", async () => {
+      try {
+        const res = await fetch(`/group/find-players-for-group?groupId=${encodeURIComponent(groupId)}`);
+        const data = await res.json();
+        const playersList = document.getElementById("recommended-players");
+        playersList.innerHTML = "";
+
+        if (data.success && data.players.length > 0) {
+          data.players.forEach(player => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
+            li.textContent = `${player.nombre_usuario} - Coincidencias: ${player.coincidencias}`;
+
+            // Botón para invitar al jugador
+            const inviteBtn = document.createElement("button");
+            inviteBtn.classList.add("btn", "btn-sm", "btn-steam");
+            inviteBtn.innerHTML = '<i class="fas fa-user-plus"></i> Invitar';
+            inviteBtn.onclick = async () => {
+              await requestGroupToPlayer(groupId, player.id_usuario);
+            };
+
+            li.appendChild(inviteBtn);
+            playersList.appendChild(li);
+          });
+          document.getElementById("find-players-section").classList.remove("hidden");
+        } else {
+          showMessage(data.message || "No se encontraron jugadores.");
+        }
+      } catch (error) {
+        console.error("Error al buscar jugadores recomendados:", error);
+        showMessage("Error al buscar jugadores recomendados.");
+      }
+    });
+
+    async function requestGroupToPlayer(groupId, userId) {
+      try {
+        const res = await fetch("/group/request-join-group", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId, userId }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          showMessage(`Invitación enviada a ${userId}.`);
+        } else {
+          showMessage(data.error || "Error al enviar la solicitud.");
+        }
+      } catch (error) {
+        console.error("Error al invitar al usuario al grupo:", error);
+        showMessage("Error al invitar al usuario al grupo.");
+      }
+    }
+
+    async function loadPendingInvitations() {
+      try {
+        const res = await fetch("/user/pending-invitations");
+        const data = await res.json();
+
+        const invitationsList = document.getElementById("pending-invitations");
+        invitationsList.innerHTML = "";
+
+        if (data.success && data.invitations.length > 0) {
+          document.getElementById("invitations-section").classList.remove("hidden");
+
+          data.invitations.forEach(invitation => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center", "animate__animated", "animate__fadeIn");
+            li.textContent = `Grupo: ${invitation.nombre_grupo}`;
+
+            const acceptBtn = document.createElement("button");
+            acceptBtn.classList.add("btn", "btn-sm", "btn-steam");
+            acceptBtn.innerHTML = '<i class="fas fa-check"></i> Aceptar';
+            acceptBtn.onclick = async () => {
+              await acceptInvitation(invitation.id_grupo);
+            };
+
+            li.appendChild(acceptBtn);
+            invitationsList.appendChild(li);
+          });
+        } else {
+          document.getElementById("invitations-section").classList.add("hidden");
+        }
+      } catch (error) {
+        console.error("Error al cargar invitaciones:", error);
+      }
+    }
+
+    async function acceptInvitation(groupId) {
+      try {
+        const res = await fetch("/group/accept-invitation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showMessage(data.message);
+          await loadPendingInvitations();
+          await checkUser();
+        } else {
+          showMessage(data.error);
+        }
+      } catch (error) {
+        console.error("Error al aceptar invitación:", error);
+        showMessage("Error al aceptar la invitación.");
+      }
+    }
+
+    checkUser();
+  </script>
+</body>
+</html>
